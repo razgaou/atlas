@@ -65,6 +65,7 @@ import {
 	navigateToBusinessMetadataDetailPage,
 	navigateToClassificationDetailPage,
 	navigateToGlossaryTermDetailPage,
+	navigateToSemanticSearch,
 	navigateToServiceTypeEntitySearch
 } from "@utils/dashboardSearchUtils";
 
@@ -79,6 +80,7 @@ const SCOPE_SELECT_ID = "quick-search-scope-select";
 
 const SCOPE_LABELS: Record<QuickSearchScope, string> = {
 	default: "Select All",
+	semantic: "Semantic",
 	entity: "Entity",
 	classification: "Classification",
 	glossary: "Glossary / Terms",
@@ -284,6 +286,10 @@ const QuickSearch = () => {
 			setOpen(false);
 			setOptions([]);
 			setInputText("");
+			if (scope === "semantic") {
+				navigateToSemanticSearch(navigate, queryValue);
+				return;
+			}
 			if (scope !== "default") {
 				return;
 			}
@@ -341,6 +347,12 @@ const QuickSearch = () => {
 
 	const handleSubmitSearch = () => {
 		const q = inputText.trim();
+		if (scope === "semantic") {
+			if (q) {
+				navigateToSemanticSearch(navigate, q);
+			}
+			return;
+		}
 		if (scope !== "default") {
 			const activeOption = options.find((o) => o.title === q);
 			if (activeOption?.scoped) {
@@ -379,7 +391,11 @@ const QuickSearch = () => {
 	};
 
 	const inputPlaceholder =
-		scope === "default" ? "Search Entities..." : "Contains text...";
+		scope === "semantic"
+			? "Semantic search (meaning-based)..."
+			: scope === "default"
+				? "Search Entities..."
+				: "Contains text...";
 
 	return (
 		<>
@@ -403,6 +419,7 @@ const QuickSearch = () => {
 						renderValue={(v) => SCOPE_LABELS[v as QuickSearchScope]}
 					>
 						<MenuItem value="default">Select All</MenuItem>
+						<MenuItem value="semantic">Semantic</MenuItem>
 						<MenuItem value="entity">Entity</MenuItem>
 						<MenuItem value="classification">Classification</MenuItem>
 						<MenuItem value="glossary">Glossary / Terms</MenuItem>
