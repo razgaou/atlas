@@ -65,6 +65,7 @@ while [ $# -gt 0 ]; do
 done
 
 wait_for_opensearch "${OPENSEARCH_URL}"
+enable_local_ml_on_data_node "${OPENSEARCH_URL}"
 
 resolve_local_embedding_model_id \
   "${OPENSEARCH_URL}" \

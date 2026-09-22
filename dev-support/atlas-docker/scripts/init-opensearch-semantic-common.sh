@@ -6,6 +6,14 @@ SEMANTIC_TEXT_FIELD="${SEMANTIC_TEXT_FIELD:-atlas_semantic_text}"
 SEMANTIC_EMBEDDING_FIELD="${SEMANTIC_EMBEDDING_FIELD:-atlas_semantic_embedding}"
 VERTEX_INDEX_NAME="${VERTEX_INDEX_NAME:-janusgraph_vertex_index}"
 
+enable_local_ml_on_data_node() {
+  local url="${1:?OpenSearch URL required}"
+  echo "==> Allowing ML models on data node (local dev) ..."
+  curl -sf -X PUT "${url}/_cluster/settings" \
+    -H "Content-Type: application/json" \
+    -d '{"persistent":{"plugins.ml_commons.only_run_on_ml_node":false}}' >/dev/null
+}
+
 wait_for_opensearch() {
   local url="${1:?OpenSearch URL required}"
   echo "==> Waiting for OpenSearch at ${url} ..."
