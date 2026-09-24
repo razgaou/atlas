@@ -17,12 +17,12 @@
  */
 package org.apache.atlas.tools;
 
+import org.apache.atlas.model.instance.AtlasEntity;
 import org.apache.atlas.repository.graph.AtlasGraphProvider;
 import org.apache.atlas.repository.graphdb.AtlasGraph;
 import org.apache.atlas.repository.graphdb.AtlasVertex;
 import org.apache.atlas.repository.graphdb.janus.AtlasJanusGraphDatabase;
 import org.apache.atlas.repository.store.graph.v2.AtlasGraphUtilsV2;
-import org.apache.atlas.model.instance.AtlasEntity;
 import org.apache.atlas.semantic.OpenSearchSemanticStore;
 import org.apache.atlas.semantic.SemanticNotificationGuidExpander;
 import org.apache.atlas.semantic.SemanticTextBuilder;
@@ -46,6 +46,9 @@ public class SemanticRepair {
 
     private static final int EXIT_CODE_SUCCESS = 0;
     private static final int EXIT_CODE_FAILED  = 1;
+
+    private SemanticRepair() {
+    }
 
     public static void main(String[] args) {
         int exitCode = EXIT_CODE_FAILED;

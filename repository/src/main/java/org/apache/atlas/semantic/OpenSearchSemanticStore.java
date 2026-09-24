@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PreDestroy;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -134,7 +135,7 @@ public class OpenSearchSemanticStore {
         script.put("params", params);
 
         Map<String, Object> body = new HashMap<>();
-        body.put("query", Collections.singletonMap("term", Collections.singletonMap(guidFilterField(), guid)));
+        body.put("query", exactMatchClause(Constants.GUID_PROPERTY_KEY, guid));
         body.put("script", script);
         return body;
     }
@@ -303,7 +304,7 @@ public class OpenSearchSemanticStore {
 
         Map<String, Object> body = new HashMap<>();
         body.put("size", 1);
-        body.put("query", Collections.singletonMap("term", Collections.singletonMap(guidFilterField(), guid)));
+        body.put("query", exactMatchClause(Constants.GUID_PROPERTY_KEY, guid));
         if (sourceFields == null || sourceFields.isEmpty()) {
             body.put("_source", false);
         } else {
@@ -639,37 +640,44 @@ public class OpenSearchSemanticStore {
         List<Map<String, Object>> filters = new ArrayList<>();
 
         if (!filter.getTypeNames().isEmpty()) {
-            // JanusGraph maps __typeName as text; exact type filtering requires the keyword subfield.
-            filters.add(termsFilter(typeNameFilterField(), filter.getTypeNames()));
+            // JanusGraph maps __typeName as analyzed text with no keyword subfield, so match on the
+            // analyzed field (match_phrase) rather than a term query against a non-existent .keyword.
+            filters.add(anyExactMatchClause(Constants.ENTITY_TYPE_PROPERTY_KEY, filter.getTypeNames()));
         }
 
         if (!filter.getExcludeGuids().isEmpty()) {
-            Map<String, Object> mustNot = new HashMap<>();
-            mustNot.put("terms", Collections.singletonMap(guidFilterField(), new ArrayList<>(filter.getExcludeGuids())));
+            List<Map<String, Object>> mustNot = new ArrayList<>();
+            for (String excludeGuid : filter.getExcludeGuids()) {
+                mustNot.add(exactMatchClause(Constants.GUID_PROPERTY_KEY, excludeGuid));
+            }
 
             Map<String, Object> bool = new HashMap<>();
-            bool.put("must_not", Collections.singletonList(mustNot));
+            bool.put("must_not", mustNot);
             filters.add(Collections.singletonMap("bool", bool));
         }
 
         return filters;
     }
 
-    private static String typeNameFilterField() {
-        return Constants.ENTITY_TYPE_PROPERTY_KEY + ".keyword";
+    /**
+     * Exact-match a single value against a JanusGraph analyzed text field ({@code __guid},
+     * {@code __typeName}). JanusGraph does not create a {@code .keyword} subfield, so a
+     * {@code term} query never matches; {@code match_phrase} matches the exact analyzed value.
+     */
+    static Map<String, Object> exactMatchClause(String field, String value) {
+        return Collections.singletonMap("match_phrase", Collections.singletonMap(field, value));
     }
 
-    private static String guidFilterField() {
-        return Constants.GUID_PROPERTY_KEY + ".keyword";
-    }
+    private static Map<String, Object> anyExactMatchClause(String field, Set<String> values) {
+        List<Map<String, Object>> should = new ArrayList<>();
+        for (String value : values) {
+            should.add(exactMatchClause(field, value));
+        }
 
-    private Map<String, Object> termsFilter(String field, Set<String> values) {
-        Map<String, Object> termsValue = new HashMap<>();
-        termsValue.put(field, new ArrayList<>(values));
-
-        Map<String, Object> terms = new HashMap<>();
-        terms.put("terms", termsValue);
-        return terms;
+        Map<String, Object> bool = new HashMap<>();
+        bool.put("should", should);
+        bool.put("minimum_should_match", 1);
+        return Collections.singletonMap("bool", bool);
     }
 
     @SuppressWarnings("unchecked")

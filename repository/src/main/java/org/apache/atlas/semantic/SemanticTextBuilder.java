@@ -27,8 +27,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.atlas.repository.Constants.CLASSIFICATION_TEXT_KEY;
@@ -61,10 +63,23 @@ public class SemanticTextBuilder {
 
     private static final Set<String> HANDLED_PROPERTY_KEYS = new HashSet<>();
 
+    /**
+     * Human-readable synonyms for well-known governance classifications, folded into the embedding
+     * text so natural-language queries (e.g. "personal data", "trusted") match tagged entities even
+     * when the raw tag name (PII, Certified) is not vocabulary a user would type. Unknown tags are
+     * embedded by name only; extend or externalize this map as governance vocabulary evolves.
+     */
+    private static final Map<String, String> CLASSIFICATION_SYNONYMS = new HashMap<>();
+
     static {
         HANDLED_PROPERTY_KEYS.add(CLASSIFICATION_TEXT_KEY);
         HANDLED_PROPERTY_KEYS.add(LABELS_PROPERTY_KEY);
         HANDLED_PROPERTY_KEYS.add(CUSTOM_ATTRIBUTES_PROPERTY_KEY);
+
+        CLASSIFICATION_SYNONYMS.put("pii", "personally identifiable information personal private sensitive customer data");
+        CLASSIFICATION_SYNONYMS.put("sensitive", "sensitive restricted confidential controlled");
+        CLASSIFICATION_SYNONYMS.put("certified", "certified trusted preferred authoritative reliable quality assured");
+        CLASSIFICATION_SYNONYMS.put("deprecated", "deprecated obsolete legacy do not use");
     }
 
     public String buildText(AtlasVertex vertex) {
@@ -100,7 +115,9 @@ public class SemanticTextBuilder {
                 continue;
             }
 
-            appendToken(sb, AtlasGraphUtilsV2.getTypeName(classificationVertex), MAX_CLASSIFICATION_TEXT);
+            String classificationName = AtlasGraphUtilsV2.getTypeName(classificationVertex);
+            appendToken(sb, classificationName, MAX_CLASSIFICATION_TEXT);
+            appendToken(sb, classificationSynonyms(classificationName), MAX_CLASSIFICATION_TEXT);
             appendClassificationVertexAttributes(sb, classificationVertex);
         }
     }
@@ -118,6 +135,14 @@ public class SemanticTextBuilder {
 
             appendVertexStringProperty(sb, classificationVertex, propertyKey);
         }
+    }
+
+    private static String classificationSynonyms(String classificationName) {
+        if (StringUtils.isBlank(classificationName)) {
+            return null;
+        }
+
+        return CLASSIFICATION_SYNONYMS.get(classificationName.toLowerCase());
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

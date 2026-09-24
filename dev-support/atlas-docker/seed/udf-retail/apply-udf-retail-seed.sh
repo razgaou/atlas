@@ -120,12 +120,18 @@ post_file "${ATLAS_URL}/api/atlas/v2/entity" "${SCRIPT_DIR}/entity-lineage-proce
   || echo "    (lineage process may already exist — continuing)"
 
 log "Creating glossary from glossary-create.json ..."
+GLOSSARY_NAME="$(jq -r '.name' "${SCRIPT_DIR}/glossary-create.json")"
 GLOSSARY_RESP="$(post_file "${ATLAS_URL}/api/atlas/v2/glossary" "${SCRIPT_DIR}/glossary-create.json")"
 GLOSSARY_GUID="$(echo "${GLOSSARY_RESP}" | jq -r '.guid // .mutatedEntities.entityCreate[0].guid // empty')"
 if [ -z "${GLOSSARY_GUID}" ]; then
-  GLOSSARY_GUID="$(curl -s "${AUTH[@]}" "${HDR[@]}" \
-    "${ATLAS_URL}/api/atlas/v2/search/basic?typeName=AtlasGlossary&query=UDF%20Retail" \
-    | jq -r '.entities[0].guid // empty')"
+  # Glossary already exists (idempotent re-run): resolve its guid by name from the glossary list.
+  # AtlasGlossary is not reliably returned by basic entity search, so use the glossary API directly.
+  GLOSSARY_GUID="$(curl -s "${AUTH[@]}" "${HDR[@]}" "${ATLAS_URL}/api/atlas/v2/glossary?limit=1000" \
+    | jq -r --arg n "${GLOSSARY_NAME}" 'map(select(.name == $n)) | .[0].guid // empty')"
+fi
+if [ -z "${GLOSSARY_GUID}" ]; then
+  echo "    FAILED to resolve glossary guid for '${GLOSSARY_NAME}' — aborting before term creation" >&2
+  exit 1
 fi
 log "    glossary guid=${GLOSSARY_GUID}"
 

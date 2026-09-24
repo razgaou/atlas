@@ -48,6 +48,9 @@ public class SemanticIndexer {
 
     private static volatile boolean running = true;
 
+    private SemanticIndexer() {
+    }
+
     public static void main(String[] args) {
         int exitCode = 1;
         SemanticIndexerHealthServer healthServer = null;
