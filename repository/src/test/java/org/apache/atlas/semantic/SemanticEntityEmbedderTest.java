@@ -17,27 +17,18 @@
  */
 package org.apache.atlas.semantic;
 
-public class SemanticSearchException extends Exception {
-    private final boolean retryable;
+import org.testng.annotations.Test;
 
-    public SemanticSearchException(String message) {
-        this(message, null, false);
-    }
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
-    public SemanticSearchException(String message, boolean retryable) {
-        this(message, null, retryable);
-    }
-
-    public SemanticSearchException(String message, Throwable cause) {
-        this(message, cause, false);
-    }
-
-    public SemanticSearchException(String message, Throwable cause, boolean retryable) {
-        super(message, cause);
-        this.retryable = retryable;
-    }
-
-    public boolean isRetryable() {
-        return retryable;
+public class SemanticEntityEmbedderTest {
+    @Test
+    public void isEmbeddableEntityTypeRejectsGlossaryAndInternalTypes() {
+        assertFalse(SemanticEntityEmbedder.isEmbeddableEntityType("AtlasGlossaryTerm"));
+        assertFalse(SemanticEntityEmbedder.isEmbeddableEntityType("AtlasGlossary"));
+        assertFalse(SemanticEntityEmbedder.isEmbeddableEntityType("__AtlasAuditEntry"));
+        assertFalse(SemanticEntityEmbedder.isEmbeddableEntityType(""));
+        assertTrue(SemanticEntityEmbedder.isEmbeddableEntityType("DataSet"));
     }
 }
