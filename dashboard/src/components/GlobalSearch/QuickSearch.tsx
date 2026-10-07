@@ -32,7 +32,7 @@ import { getGlobalSearchResult } from "../../api/apiMethods/searchApiMethod";
 import DisplayImage from "../EntityDisplayImage";
 import SearchIcon from "@mui/icons-material/Search";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { entityStateReadOnly } from "../../utils/Enum";
+import { entityStateReadOnly, globalSessionData } from "../../utils/Enum";
 import {
 	extractKeyValueFromEntity,
 	isEmpty,
@@ -97,7 +97,11 @@ const QuickSearch = () => {
 	const [openAdvanceSearch, setOpenAdvanceSearch] = useState<boolean>(false);
 	const [loading, setLoading] = useState<boolean>(false);
 	const [inputText, setInputText] = useState<string>("");
-	const [scope, setScope] = useState<QuickSearchScope>("default");
+	const [scope, setScope] = useState<QuickSearchScope>(() =>
+		globalSessionData?.semanticSearch && searchParams.get("searchType") === "semantic"
+			? "semantic"
+			: "default"
+	);
 
 	const { typeHeaderData } = useAppSelector((state: any) => state.typeHeader);
 	const { metricsData } = useAppSelector((state: any) => state.metrics);
@@ -419,7 +423,7 @@ const QuickSearch = () => {
 						renderValue={(v) => SCOPE_LABELS[v as QuickSearchScope]}
 					>
 						<MenuItem value="default">Select All</MenuItem>
-						<MenuItem value="semantic">Semantic</MenuItem>
+						{globalSessionData?.semanticSearch && <MenuItem value="semantic">Semantic</MenuItem>}
 						<MenuItem value="entity">Entity</MenuItem>
 						<MenuItem value="classification">Classification</MenuItem>
 						<MenuItem value="glossary">Glossary / Terms</MenuItem>
